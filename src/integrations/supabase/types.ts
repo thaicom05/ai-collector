@@ -14,7 +14,173 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      collection_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          edition: string | null
+          estimated_value: number | null
+          id: string
+          image_url: string | null
+          name: string
+          notes: string | null
+          scan_id: string | null
+          user_id: string
+          year: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          edition?: string | null
+          estimated_value?: number | null
+          id?: string
+          image_url?: string | null
+          name: string
+          notes?: string | null
+          scan_id?: string | null
+          user_id: string
+          year?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          edition?: string | null
+          estimated_value?: number | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          notes?: string | null
+          scan_id?: string | null
+          user_id?: string
+          year?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_items_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          price: number
+          seller_id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          price: number
+          seller_id: string
+          status?: string
+          title: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          price?: number
+          seller_id?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      scans: {
+        Row: {
+          authenticity_notes: string | null
+          belief: string | null
+          category: string | null
+          confidence: number | null
+          created_at: string
+          description: string | null
+          edition: string | null
+          history: string | null
+          id: string
+          image_url: string
+          market_price_max: number | null
+          market_price_min: number | null
+          name: string | null
+          popularity: string | null
+          raw_response: Json | null
+          user_id: string | null
+          year: string | null
+        }
+        Insert: {
+          authenticity_notes?: string | null
+          belief?: string | null
+          category?: string | null
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          edition?: string | null
+          history?: string | null
+          id?: string
+          image_url: string
+          market_price_max?: number | null
+          market_price_min?: number | null
+          name?: string | null
+          popularity?: string | null
+          raw_response?: Json | null
+          user_id?: string | null
+          year?: string | null
+        }
+        Update: {
+          authenticity_notes?: string | null
+          belief?: string | null
+          category?: string | null
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          edition?: string | null
+          history?: string | null
+          id?: string
+          image_url?: string
+          market_price_max?: number | null
+          market_price_min?: number | null
+          name?: string | null
+          popularity?: string | null
+          raw_response?: Json | null
+          user_id?: string | null
+          year?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
