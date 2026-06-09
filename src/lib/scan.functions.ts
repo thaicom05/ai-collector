@@ -72,7 +72,7 @@ export const analyzeImage = createServerFn({ method: "POST" })
       market_price_max: num(parsed.market_price_max),
       popularity: (parsed.popularity as string) ?? null,
       confidence: num(parsed.confidence),
-      raw_response: parsed,
+      raw_response: parsed as never,
     }).select().single();
 
     if (error) throw new Error(error.message);
