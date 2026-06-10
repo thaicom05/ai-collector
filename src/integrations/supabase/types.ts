@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      auctions: {
+        Row: {
+          bid_count: number
+          bid_increment: number
+          category: string | null
+          created_at: string
+          current_price: number
+          description: string | null
+          ends_at: string
+          id: string
+          image_url: string | null
+          seller_id: string
+          starting_price: number
+          status: string
+          title: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          bid_count?: number
+          bid_increment?: number
+          category?: string | null
+          created_at?: string
+          current_price: number
+          description?: string | null
+          ends_at: string
+          id?: string
+          image_url?: string | null
+          seller_id: string
+          starting_price: number
+          status?: string
+          title: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          bid_count?: number
+          bid_increment?: number
+          category?: string | null
+          created_at?: string
+          current_price?: number
+          description?: string | null
+          ends_at?: string
+          id?: string
+          image_url?: string | null
+          seller_id?: string
+          starting_price?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
+      bids: {
+        Row: {
+          amount: number
+          auction_id: string
+          bidder_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          amount: number
+          auction_id: string
+          bidder_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          amount?: number
+          auction_id?: string
+          bidder_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_items: {
         Row: {
           category: string | null
