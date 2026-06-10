@@ -216,12 +216,14 @@ export type Database = {
           created_at: string
           description: string | null
           edition: string | null
+          embedding: string | null
           history: string | null
           id: string
           image_url: string
           market_price_max: number | null
           market_price_min: number | null
           name: string | null
+          points_of_interest: Json | null
           popularity: string | null
           raw_response: Json | null
           user_id: string | null
@@ -235,12 +237,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           edition?: string | null
+          embedding?: string | null
           history?: string | null
           id?: string
           image_url: string
           market_price_max?: number | null
           market_price_min?: number | null
           name?: string | null
+          points_of_interest?: Json | null
           popularity?: string | null
           raw_response?: Json | null
           user_id?: string | null
@@ -254,12 +258,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           edition?: string | null
+          embedding?: string | null
           history?: string | null
           id?: string
           image_url?: string
           market_price_max?: number | null
           market_price_min?: number | null
           name?: string | null
+          points_of_interest?: Json | null
           popularity?: string | null
           raw_response?: Json | null
           user_id?: string | null
@@ -272,7 +278,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_scans: {
+        Args: {
+          exclude_id?: string
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          id: string
+          image_url: string
+          market_price_max: number
+          market_price_min: number
+          name: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
