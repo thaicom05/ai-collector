@@ -24,6 +24,7 @@ export function SiteNav() {
     { to: "/", label: "หน้าแรก" },
     { to: "/scan", label: "สแกนด้วย AI" },
     { to: "/collection", label: "คอลเลกชัน" },
+    { to: "/auctions", label: "ประมูล" },
     { to: "/marketplace", label: "ตลาด" },
   ] as const;
 
