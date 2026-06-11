@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuctionsAuctionIdRouteImport } from './routes/auctions.$auctionId'
 import { Route as AuthenticatedScanRouteImport } from './routes/_authenticated/scan'
 import { Route as AuthenticatedCollectionRouteImport } from './routes/_authenticated/collection'
+import { Route as AuthenticatedCartRouteImport } from './routes/_authenticated/cart'
 
 const MarketplaceRoute = MarketplaceRouteImport.update({
   id: '/marketplace',
@@ -57,12 +58,18 @@ const AuthenticatedCollectionRoute = AuthenticatedCollectionRouteImport.update({
   path: '/collection',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCartRoute = AuthenticatedCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auctions': typeof AuctionsRouteWithChildren
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/cart': typeof AuthenticatedCartRoute
   '/collection': typeof AuthenticatedCollectionRoute
   '/scan': typeof AuthenticatedScanRoute
   '/auctions/$auctionId': typeof AuctionsAuctionIdRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByTo {
   '/auctions': typeof AuctionsRouteWithChildren
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/cart': typeof AuthenticatedCartRoute
   '/collection': typeof AuthenticatedCollectionRoute
   '/scan': typeof AuthenticatedScanRoute
   '/auctions/$auctionId': typeof AuctionsAuctionIdRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/auctions': typeof AuctionsRouteWithChildren
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/_authenticated/cart': typeof AuthenticatedCartRoute
   '/_authenticated/collection': typeof AuthenticatedCollectionRoute
   '/_authenticated/scan': typeof AuthenticatedScanRoute
   '/auctions/$auctionId': typeof AuctionsAuctionIdRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
     | '/auctions'
     | '/auth'
     | '/marketplace'
+    | '/cart'
     | '/collection'
     | '/scan'
     | '/auctions/$auctionId'
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
     | '/auctions'
     | '/auth'
     | '/marketplace'
+    | '/cart'
     | '/collection'
     | '/scan'
     | '/auctions/$auctionId'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/auctions'
     | '/auth'
     | '/marketplace'
+    | '/_authenticated/cart'
     | '/_authenticated/collection'
     | '/_authenticated/scan'
     | '/auctions/$auctionId'
@@ -184,15 +196,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCollectionRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cart': {
+      id: '/_authenticated/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof AuthenticatedCartRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCartRoute: typeof AuthenticatedCartRoute
   AuthenticatedCollectionRoute: typeof AuthenticatedCollectionRoute
   AuthenticatedScanRoute: typeof AuthenticatedScanRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCartRoute: AuthenticatedCartRoute,
   AuthenticatedCollectionRoute: AuthenticatedCollectionRoute,
   AuthenticatedScanRoute: AuthenticatedScanRoute,
 }
@@ -222,3 +243,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
