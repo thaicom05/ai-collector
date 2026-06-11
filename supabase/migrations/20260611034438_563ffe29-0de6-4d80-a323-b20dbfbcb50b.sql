@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.validate_and_apply_order() FROM PUBLIC, anon, authenticated;
