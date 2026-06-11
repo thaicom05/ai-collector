@@ -136,6 +136,11 @@ function Marketplace() {
                         </>
                       )}
                     </div>
+                    {!own && (
+                      <Button size="sm" variant="ghost" className="mt-2 w-full" onClick={() => chatSeller(l)}>
+                        <MessageCircle className="w-3.5 h-3.5 mr-1" /> แชทผู้ขาย
+                      </Button>
+                    )}
                   </div>
                 </Card>
               );
