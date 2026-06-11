@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Store, Trash2, ShoppingCart, Zap } from "lucide-react";
+import { Plus, Store, Trash2, ShoppingCart, Zap, MessageCircle } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Card } from "@/components/ui/card";
