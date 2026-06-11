@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Store, Trash2, ShoppingCart, Zap } from "lucide-react";
+import { Plus, Store, Trash2, ShoppingCart, Zap, MessageCircle } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Card } from "@/components/ui/card";
@@ -69,6 +69,24 @@ function Marketplace() {
     else { toast.success("สั่งซื้อสำเร็จ — ติดต่อผู้ขายเพื่อชำระเงิน"); refetch(); }
   };
 
+  const chatSeller = async (l: { id: string; seller_id: string }) => {
+    if (!userId) { router.navigate({ to: "/auth" }); return; }
+    if (userId === l.seller_id) { toast.error("ไม่สามารถแชทกับตัวเองได้"); return; }
+    // upsert conversation (unique on listing_id, buyer_id)
+    const { data: existing } = await supabase
+      .from("conversations").select("id")
+      .eq("listing_id", l.id).eq("buyer_id", userId).maybeSingle();
+    let convId = existing?.id;
+    if (!convId) {
+      const { data, error } = await supabase.from("conversations")
+        .insert({ listing_id: l.id, buyer_id: userId, seller_id: l.seller_id })
+        .select("id").single();
+      if (error) { toast.error(error.message); return; }
+      convId = data.id;
+    }
+    router.navigate({ to: "/messages/$conversationId", params: { conversationId: convId } });
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <SiteNav />
@@ -118,6 +136,11 @@ function Marketplace() {
                         </>
                       )}
                     </div>
+                    {!own && (
+                      <Button size="sm" variant="ghost" className="mt-2 w-full" onClick={() => chatSeller(l)}>
+                        <MessageCircle className="w-3.5 h-3.5 mr-1" /> แชทผู้ขาย
+                      </Button>
+                    )}
                   </div>
                 </Card>
               );
