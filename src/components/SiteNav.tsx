@@ -26,6 +26,7 @@ export function SiteNav() {
     { to: "/collection", label: "คอลเลกชัน" },
     { to: "/auctions", label: "ประมูล" },
     { to: "/marketplace", label: "ตลาด" },
+    { to: "/messages", label: "ข้อความ" },
     { to: "/cart", label: "ตะกร้า" },
   ] as const;
 
