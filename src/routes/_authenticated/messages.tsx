@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,15 @@ export const Route = createFileRoute("/_authenticated/messages")({
 });
 
 function InboxPage() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const ch = supabase.channel("inbox-messages")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        qc.invalidateQueries({ queryKey: ["conversations"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
   const { data } = useQuery({
     queryKey: ["conversations"],
     queryFn: async () => {
