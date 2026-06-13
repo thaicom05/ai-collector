@@ -117,8 +117,8 @@ function Marketplace() {
               const own = l.seller_id === userId;
               return (
                 <Card key={l.id} className="overflow-hidden p-0 hover:shadow-[var(--shadow-elegant)] transition-shadow flex flex-col">
-                  {l.image_url && (
-                    <img src={publicUrl(l.image_url)} alt={l.title} className="w-full aspect-square object-cover" loading="lazy" />
+                  {l._img && (
+                    <img src={l._img} alt={l.title} className="w-full aspect-square object-cover" loading="lazy" />
                   )}
                   <div className="p-5 flex-1 flex flex-col">
                     {l.category && <Badge variant="secondary" className="mb-2 w-fit">{l.category}</Badge>}
