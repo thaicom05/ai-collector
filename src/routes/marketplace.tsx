@@ -24,12 +24,6 @@ export const Route = createFileRoute("/marketplace")({
   component: Marketplace,
 });
 
-function publicUrl(path: string | null): string {
-  if (!path) return "";
-  if (path.startsWith("http")) return path;
-  return supabase.storage.from("listings").getPublicUrl(path).data.publicUrl;
-}
-
 function Marketplace() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
@@ -40,7 +34,16 @@ function Marketplace() {
     queryFn: async () => {
       const { data, error } = await supabase.from("listings").select("*").eq("status", "active").order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      const paths = (data ?? []).map(l => l.image_url).filter((p): p is string => !!p && !p.startsWith("http"));
+      const urlMap = new Map<string, string>();
+      if (paths.length) {
+        const { data: signed } = await supabase.storage.from("listings").createSignedUrls(paths, 60 * 60);
+        signed?.forEach((s, i) => { if (s.signedUrl) urlMap.set(paths[i], s.signedUrl); });
+      }
+      return (data ?? []).map(l => ({
+        ...l,
+        _img: l.image_url ? (l.image_url.startsWith("http") ? l.image_url : urlMap.get(l.image_url) ?? "") : "",
+      }));
     },
   });
 
