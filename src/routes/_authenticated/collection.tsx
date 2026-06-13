@@ -112,17 +112,30 @@ function ItemImage({ path, alt }: { path: string; alt: string }) {
 
 function ManualAddDialog({ onAdded }: { onAdded: () => void }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", category: "", edition: "", year: "", notes: "", estimated_value: "" });
+  const [form, setForm] = useState({ name: "", category: "", edition: "", year: "", notes: "", estimated_value: "", image_url: "" });
+  const [file, setFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const reset = () => { setForm({ name: "", category: "", edition: "", year: "", notes: "", estimated_value: "", image_url: "" }); setFile(null); };
   const save = async () => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user || !form.name) return;
+    setSaving(true);
+    let image_url: string | null = form.image_url.trim() || null;
+    if (file) {
+      const path = `${userData.user.id}/${Date.now()}-${file.name.replace(/[^a-z0-9.]/gi, "_")}`;
+      const { error: upErr } = await supabase.storage.from("scans").upload(path, file, { contentType: file.type });
+      if (upErr) { toast.error(upErr.message); setSaving(false); return; }
+      image_url = path;
+    }
     const { error } = await supabase.from("collection_items").insert({
       user_id: userData.user.id,
       name: form.name, category: form.category || null, edition: form.edition || null, year: form.year || null,
       notes: form.notes || null, estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
+      image_url,
     });
+    setSaving(false);
     if (error) toast.error(error.message);
-    else { toast.success("เพิ่มแล้ว"); setOpen(false); setForm({ name: "", category: "", edition: "", year: "", notes: "", estimated_value: "" }); onAdded(); }
+    else { toast.success("เพิ่มแล้ว"); setOpen(false); reset(); onAdded(); }
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -137,9 +150,22 @@ function ManualAddDialog({ onAdded }: { onAdded: () => void }) {
             <div><Label>ปี</Label><Input value={form.year} onChange={e => setForm({ ...form, year: e.target.value })} /></div>
             <div><Label>มูลค่าประมาณ (฿)</Label><Input type="number" value={form.estimated_value} onChange={e => setForm({ ...form, estimated_value: e.target.value })} /></div>
           </div>
+          <div>
+            <Label>อัปโหลดรูปภาพ</Label>
+            <Input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+          </div>
+          <div>
+            <Label>หรือใส่ URL รูปภาพ</Label>
+            <Input
+              value={form.image_url}
+              onChange={e => setForm({ ...form, image_url: e.target.value })}
+              placeholder="https://..."
+              disabled={!!file}
+            />
+          </div>
           <div><Label>หมายเหตุ</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
         </div>
-        <DialogFooter><Button onClick={save} className="bg-primary">บันทึก</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={saving} className="bg-primary">{saving ? "กำลังบันทึก…" : "บันทึก"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
