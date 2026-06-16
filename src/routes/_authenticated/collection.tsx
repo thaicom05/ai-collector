@@ -17,6 +17,12 @@ export const Route = createFileRoute("/_authenticated/collection")({
   component: CollectionPage,
 });
 
+type CollectionItem = {
+  id: string; name: string; category: string | null;
+  image_url: string | null; estimated_value: number | null;
+  edition?: string | null; year?: string | null;
+};
+
 function CollectionPage() {
   const { data: items, refetch } = useQuery({
     queryKey: ["collection"],
@@ -27,6 +33,8 @@ function CollectionPage() {
     },
   });
 
+  const [listingItem, setListingItem] = useState<CollectionItem | null>(null);
+
   const totalValue = items?.reduce((s, i) => s + (Number(i.estimated_value) || 0), 0) ?? 0;
 
   const del = async (id: string) => {
@@ -34,20 +42,7 @@ function CollectionPage() {
     if (error) toast.error(error.message); else { toast.success("ลบแล้ว"); refetch(); }
   };
 
-  const listOnMarket = async (item: { name: string; category: string | null; image_url: string | null; estimated_value: number | null }) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const { error } = await supabase.from("listings").insert({
-      seller_id: userData.user.id,
-      title: item.name,
-      category: item.category,
-      price: item.estimated_value ?? 0,
-      image_url: item.image_url,
-      description: `ลงขายจากคอลเลกชัน — ${item.name}`,
-    });
-    if (error) toast.error(error.message);
-    else toast.success("ลงขายในตลาดแล้ว");
-  };
+
 
   return (
     <div className="min-h-screen">
