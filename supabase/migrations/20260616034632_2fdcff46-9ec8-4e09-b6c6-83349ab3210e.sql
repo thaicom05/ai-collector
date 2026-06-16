@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can view listing images" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'listings');
