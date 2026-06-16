@@ -80,7 +80,7 @@ function CollectionPage() {
                   {(item.edition || item.year) && <p className="text-sm text-muted-foreground">{item.edition} {item.year && `· ${item.year}`}</p>}
                   {item.estimated_value && <p className="mt-2 font-display text-lg gold-text">฿{Number(item.estimated_value).toLocaleString()}</p>}
                   <div className="mt-4 flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => listOnMarket(item)}><Tag className="w-3.5 h-3.5 mr-1" />ลงขาย</Button>
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setListingItem(item as CollectionItem)}><Tag className="w-3.5 h-3.5 mr-1" />ลงขาย</Button>
                     <Button size="sm" variant="ghost" onClick={() => del(item.id)}><Trash2 className="w-4 h-4" /></Button>
                   </div>
                 </div>
