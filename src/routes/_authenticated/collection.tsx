@@ -107,7 +107,8 @@ function ItemImage({ path, alt }: { path: string; alt: string }) {
       return data?.signedUrl ?? "";
     },
   });
-  return <img src={data ?? ""} alt={alt} className="w-full aspect-square object-cover" />;
+  if (!data) return <div className="w-full aspect-square bg-muted animate-pulse" />;
+  return <img src={data} alt={alt} className="w-full aspect-square object-cover" />;
 }
 
 function ManualAddDialog({ onAdded }: { onAdded: () => void }) {
