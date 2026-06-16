@@ -17,6 +17,12 @@ export const Route = createFileRoute("/_authenticated/collection")({
   component: CollectionPage,
 });
 
+type CollectionItem = {
+  id: string; name: string; category: string | null;
+  image_url: string | null; estimated_value: number | null;
+  edition?: string | null; year?: string | null;
+};
+
 function CollectionPage() {
   const { data: items, refetch } = useQuery({
     queryKey: ["collection"],
@@ -27,6 +33,8 @@ function CollectionPage() {
     },
   });
 
+  const [listingItem, setListingItem] = useState<CollectionItem | null>(null);
+
   const totalValue = items?.reduce((s, i) => s + (Number(i.estimated_value) || 0), 0) ?? 0;
 
   const del = async (id: string) => {
@@ -34,20 +42,7 @@ function CollectionPage() {
     if (error) toast.error(error.message); else { toast.success("ลบแล้ว"); refetch(); }
   };
 
-  const listOnMarket = async (item: { name: string; category: string | null; image_url: string | null; estimated_value: number | null }) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const { error } = await supabase.from("listings").insert({
-      seller_id: userData.user.id,
-      title: item.name,
-      category: item.category,
-      price: item.estimated_value ?? 0,
-      image_url: item.image_url,
-      description: `ลงขายจากคอลเลกชัน — ${item.name}`,
-    });
-    if (error) toast.error(error.message);
-    else toast.success("ลงขายในตลาดแล้ว");
-  };
+
 
   return (
     <div className="min-h-screen">
@@ -85,7 +80,7 @@ function CollectionPage() {
                   {(item.edition || item.year) && <p className="text-sm text-muted-foreground">{item.edition} {item.year && `· ${item.year}`}</p>}
                   {item.estimated_value && <p className="mt-2 font-display text-lg gold-text">฿{Number(item.estimated_value).toLocaleString()}</p>}
                   <div className="mt-4 flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => listOnMarket(item)}><Tag className="w-3.5 h-3.5 mr-1" />ลงขาย</Button>
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setListingItem(item as CollectionItem)}><Tag className="w-3.5 h-3.5 mr-1" />ลงขาย</Button>
                     <Button size="sm" variant="ghost" onClick={() => del(item.id)}><Trash2 className="w-4 h-4" /></Button>
                   </div>
                 </div>
@@ -94,9 +89,78 @@ function CollectionPage() {
           </div>
         )}
       </div>
+      {listingItem && <ListOnMarketDialog item={listingItem} onClose={() => setListingItem(null)} />}
     </div>
   );
 }
+
+function ListOnMarketDialog({ item, onClose }: { item: CollectionItem; onClose: () => void }) {
+  const [form, setForm] = useState({
+    title: item.name,
+    category: item.category ?? "",
+    price: item.estimated_value != null ? String(item.estimated_value) : "",
+    description: `ลงขายจากคอลเลกชัน — ${item.name}`,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!form.title || !form.price) { toast.error("กรอกชื่อและราคา"); return; }
+    setSaving(true);
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) { setSaving(false); return; }
+    let image_url: string | null = null;
+    if (item.image_url) {
+      if (item.image_url.startsWith("http")) {
+        image_url = item.image_url;
+      } else {
+        // copy from scans → listings so marketplace can sign URLs
+        const { data: signed } = await supabase.storage.from("scans").createSignedUrl(item.image_url, 60);
+        if (signed?.signedUrl) {
+          try {
+            const blob = await fetch(signed.signedUrl).then(r => r.blob());
+            const ext = item.image_url.split(".").pop() || "jpg";
+            const path = `${userData.user.id}/${Date.now()}-from-collection.${ext}`;
+            const { error: upErr } = await supabase.storage.from("listings").upload(path, blob, { contentType: blob.type });
+            if (!upErr) image_url = path;
+          } catch (e) { /* ignore */ }
+        }
+      }
+    }
+    const { error } = await supabase.from("listings").insert({
+      seller_id: userData.user.id,
+      title: form.title,
+      category: form.category || null,
+      price: Number(form.price),
+      description: form.description || null,
+      image_url,
+    });
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else { toast.success("ลงขายในตลาดแล้ว"); onClose(); }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>ลงประกาศขาย</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>ชื่อสินค้า *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>หมวด</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} /></div>
+            <div><Label>ราคา (฿) *</Label><Input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
+          </div>
+          <div><Label>รายละเอียด</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+          <p className="text-xs text-muted-foreground">ใช้รูปจากคอลเลกชันโดยอัตโนมัติ</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>ยกเลิก</Button>
+          <Button onClick={save} disabled={saving} className="bg-primary">{saving ? "กำลังบันทึก…" : "ยืนยันลงขาย"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function ItemImage({ path, alt }: { path: string; alt: string }) {
   const { data } = useQuery({
