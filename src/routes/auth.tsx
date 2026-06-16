@@ -41,8 +41,17 @@ function AuthPage() {
   };
 
   const handleGoogle = async () => {
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) toast.error("ไม่สามารถเข้าสู่ระบบด้วย Google");
+    try {
+      const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/scan` });
+      if (r.error) {
+        toast.error("ไม่สามารถเข้าสู่ระบบด้วย Google: " + (r.error.message ?? ""));
+        return;
+      }
+      if (r.redirected) return;
+      router.navigate({ to: "/scan" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google");
+    }
   };
 
   return (
