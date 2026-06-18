@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, Coins, Tag, ScanLine } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
@@ -102,59 +102,109 @@ function ListOnMarketDialog({ item, onClose }: { item: CollectionItem; onClose: 
     description: `ลงขายจากคอลเลกชัน — ${item.name}`,
   });
   const [saving, setSaving] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copying" | "done" | "error" | "skip">("idle");
+  const [copyMsg, setCopyMsg] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [listingPath, setListingPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!item.image_url) { setCopyStatus("skip"); setCopyMsg("ไม่มีรูป — จะลงขายโดยไม่มีรูป"); return; }
+      if (item.image_url.startsWith("http")) {
+        setPreviewUrl(item.image_url); setListingPath(item.image_url);
+        setCopyStatus("done"); setCopyMsg("ใช้ URL รูปภายนอกได้ทันที"); return;
+      }
+      setCopyStatus("copying"); setCopyMsg("กำลังคัดลอกรูปจากคอลเลกชันไปยังตลาด…");
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) throw new Error("ไม่พบผู้ใช้");
+        const { data: signed, error: sErr } = await supabase.storage.from("scans").createSignedUrl(item.image_url, 60);
+        if (sErr || !signed?.signedUrl) throw new Error(sErr?.message ?? "ไม่สามารถสร้างลิงก์รูปต้นทาง");
+        const blob = await fetch(signed.signedUrl).then(r => r.blob());
+        const ext = item.image_url.split(".").pop() || "jpg";
+        const path = `${userData.user.id}/${Date.now()}-from-collection.${ext}`;
+        const { error: upErr } = await supabase.storage.from("listings").upload(path, blob, { contentType: blob.type });
+        if (upErr) throw new Error(upErr.message);
+        const { data: psigned } = await supabase.storage.from("listings").createSignedUrl(path, 3600);
+        if (cancelled) return;
+        setListingPath(path);
+        setPreviewUrl(psigned?.signedUrl ?? "");
+        setCopyStatus("done"); setCopyMsg("คัดลอกรูปเรียบร้อย พร้อมลงขาย");
+      } catch (e: any) {
+        if (cancelled) return;
+        setCopyStatus("error"); setCopyMsg(e?.message ?? "คัดลอกรูปไม่สำเร็จ");
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.image_url]);
 
   const save = async () => {
     if (!form.title || !form.price) { toast.error("กรอกชื่อและราคา"); return; }
+    if (copyStatus === "copying") { toast.error("กำลังคัดลอกรูป กรุณารอสักครู่"); return; }
+    if (copyStatus === "error") { toast.error("รูปยังคัดลอกไม่สำเร็จ"); return; }
     setSaving(true);
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) { setSaving(false); return; }
-    let image_url: string | null = null;
-    if (item.image_url) {
-      if (item.image_url.startsWith("http")) {
-        image_url = item.image_url;
-      } else {
-        // copy from scans → listings so marketplace can sign URLs
-        const { data: signed } = await supabase.storage.from("scans").createSignedUrl(item.image_url, 60);
-        if (signed?.signedUrl) {
-          try {
-            const blob = await fetch(signed.signedUrl).then(r => r.blob());
-            const ext = item.image_url.split(".").pop() || "jpg";
-            const path = `${userData.user.id}/${Date.now()}-from-collection.${ext}`;
-            const { error: upErr } = await supabase.storage.from("listings").upload(path, blob, { contentType: blob.type });
-            if (!upErr) image_url = path;
-          } catch (e) { /* ignore */ }
-        }
-      }
-    }
     const { error } = await supabase.from("listings").insert({
       seller_id: userData.user.id,
       title: form.title,
       category: form.category || null,
       price: Number(form.price),
       description: form.description || null,
-      image_url,
+      image_url: listingPath,
     });
     setSaving(false);
     if (error) toast.error(error.message);
     else { toast.success("ลงขายในตลาดแล้ว"); onClose(); }
   };
 
+  const statusColor =
+    copyStatus === "done" ? "text-emerald-600"
+    : copyStatus === "error" ? "text-destructive"
+    : copyStatus === "copying" ? "text-accent"
+    : "text-muted-foreground";
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader><DialogTitle>ลงประกาศขาย</DialogTitle></DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">ตัวอย่างรูปที่จะแสดงในตลาด</div>
+            <div className="flex gap-3">
+              <div className="w-28 h-28 rounded-lg overflow-hidden bg-muted flex items-center justify-center shrink-0">
+                {copyStatus === "copying" && <div className="w-full h-full animate-pulse bg-muted-foreground/20" />}
+                {previewUrl && copyStatus !== "copying" && (
+                  <img src={previewUrl} alt={form.title} className="w-full h-full object-cover" />
+                )}
+                {copyStatus === "skip" && <span className="text-xs text-muted-foreground px-2 text-center">ไม่มีรูป</span>}
+                {copyStatus === "error" && !previewUrl && <span className="text-xs text-destructive px-2 text-center">ผิดพลาด</span>}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={`text-sm font-medium ${statusColor}`}>
+                  {copyStatus === "copying" && "⏳ กำลังคัดลอก…"}
+                  {copyStatus === "done" && "✓ พร้อมลงขาย"}
+                  {copyStatus === "error" && "✗ คัดลอกไม่สำเร็จ"}
+                  {copyStatus === "skip" && "— ไม่มีรูป"}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 break-words">{copyMsg}</p>
+              </div>
+            </div>
+          </div>
           <div><Label>ชื่อสินค้า *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>หมวด</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} /></div>
             <div><Label>ราคา (฿) *</Label><Input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
           </div>
           <div><Label>รายละเอียด</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-          <p className="text-xs text-muted-foreground">ใช้รูปจากคอลเลกชันโดยอัตโนมัติ</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>ยกเลิก</Button>
-          <Button onClick={save} disabled={saving} className="bg-primary">{saving ? "กำลังบันทึก…" : "ยืนยันลงขาย"}</Button>
+          <Button onClick={save} disabled={saving || copyStatus === "copying" || copyStatus === "error"} className="bg-primary">
+            {saving ? "กำลังบันทึก…" : "ยืนยันลงขาย"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
